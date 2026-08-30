@@ -25,10 +25,22 @@ export default function LoginPage() {
     if (error) {
       setError('Invalid email or password')
       setLoading(false)
+      return
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .single()
+
+    if (roleData?.role === 'admin') {
+      router.push('/admin/bookings')
     } else {
       router.push('/dashboard')
-      router.refresh()
     }
+    router.refresh()
   }
 
   return (
