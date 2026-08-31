@@ -15,10 +15,31 @@ export default function SetupAccountPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setValidSession(!!session)
+    const setupSession = async () => {
+      // Step 1: kill any stale session (e.g. admin) sitting in this browser
+      await supabase.auth.signOut()
+
+      // Step 2: pull this invite link's own tokens straight from the URL
+      const hash = window.location.hash.substring(1)
+      const params = new URLSearchParams(hash)
+      const access_token = params.get('access_token')
+      const refresh_token = params.get('refresh_token')
+
+      if (access_token && refresh_token) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        })
+
+        if (!error && data.session) {
+          setValidSession(true)
+        }
+      }
+
       setChecking(false)
-    })
+    }
+
+    setupSession()
   }, [])
 
   const handleSetPassword = async (e: React.FormEvent) => {

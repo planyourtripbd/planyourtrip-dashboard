@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import LogoutButton from '@/components/LogoutButton'
 
 async function confirmBooking(formData: FormData) {
   'use server'
@@ -50,6 +51,22 @@ async function confirmBooking(formData: FormData) {
   revalidatePath('/admin/bookings')
 }
 
+async function markAsPaid(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  const admin = createAdminClient()
+  await admin.from('bookings').update({ payment_status: 'paid' }).eq('id', id)
+  revalidatePath('/admin/bookings')
+}
+
+async function markAsUnpaid(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  const admin = createAdminClient()
+  await admin.from('bookings').update({ payment_status: 'unpaid' }).eq('id', id)
+  revalidatePath('/admin/bookings')
+}
+
 export default async function AdminBookingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -79,7 +96,15 @@ export default async function AdminBookingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">All Bookings</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">All Bookings</h1>
+            <a href="/admin/customers" className="text-sm text-teal-700 hover:underline">
+              View Customers →
+            </a>
+          </div>
+          <LogoutButton />
+        </div>
 
         {(!bookings || bookings.length === 0) && (
           <p className="text-gray-600">No bookings yet.</p>
@@ -98,7 +123,7 @@ export default async function AdminBookingsPage() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Payment</th>
                   <th className="px-4 py-3">Booked At</th>
-                  <th className="px-4 py-3">Action</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,17 +140,40 @@ export default async function AdminBookingsPage() {
                       {new Date(b.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
-                      {b.status !== 'confirmed' && (
-                        <form action={confirmBooking}>
-                          <input type="hidden" name="id" value={b.id} />
-                          <button
-                            type="submit"
-                            className="text-sm bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700"
-                          >
-                            Confirm
-                          </button>
-                        </form>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {b.status !== 'confirmed' && (
+                          <form action={confirmBooking}>
+                            <input type="hidden" name="id" value={b.id} />
+                            <button
+                              type="submit"
+                              className="text-sm bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700 w-full"
+                            >
+                              Confirm
+                            </button>
+                          </form>
+                        )}
+                        {b.payment_status === 'paid' ? (
+                          <form action={markAsUnpaid}>
+                            <input type="hidden" name="id" value={b.id} />
+                            <button
+                              type="submit"
+                              className="text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 w-full"
+                            >
+                              Mark as Unpaid
+                            </button>
+                          </form>
+                        ) : (
+                          <form action={markAsPaid}>
+                            <input type="hidden" name="id" value={b.id} />
+                            <button
+                              type="submit"
+                              className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 w-full"
+                            >
+                              Mark as Paid
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
