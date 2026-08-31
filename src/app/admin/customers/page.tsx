@@ -28,6 +28,28 @@ export default async function AdminCustomersPage() {
     .select('id, full_name, phone, email, auth_user_id, created_at')
     .order('created_at', { ascending: false })
 
+  const { data: bookings } = await admin
+    .from('bookings')
+    .select('customer_id, assigned_agent_id, created_at')
+    .order('created_at', { ascending: false })
+
+  const { data: agents } = await admin
+    .from('user_roles')
+    .select('user_id, name')
+    .eq('role', 'sales_agent')
+
+  const agentNameMap: Record<string, string> = {}
+  agents?.forEach((a: any) => {
+    agentNameMap[a.user_id] = a.name || 'Unnamed'
+  })
+
+  const latestAgentByCustomer: Record<string, string | null> = {}
+  bookings?.forEach((b: any) => {
+    if (!(b.customer_id in latestAgentByCustomer)) {
+      latestAgentByCustomer[b.customer_id] = b.assigned_agent_id
+    }
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -54,27 +76,40 @@ export default async function AdminCustomersPage() {
                   <th className="px-4 py-3">Phone</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Account Set Up</th>
+                  <th className="px-4 py-3">Handled By</th>
                   <th className="px-4 py-3">Added At</th>
                 </tr>
               </thead>
               <tbody>
-                {customers.map((c: any) => (
-                  <tr key={c.id} className="border-t">
-                    <td className="px-4 py-3 text-gray-900">{c.full_name || '-'}</td>
-                    <td className="px-4 py-3 text-gray-900">{c.phone || '-'}</td>
-                    <td className="px-4 py-3 text-gray-900">{c.email || '-'}</td>
-                    <td className="px-4 py-3">
-                      {c.auth_user_id ? (
-                        <span className="text-teal-700 font-medium">Yes</span>
-                      ) : (
-                        <span className="text-gray-400">No</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-900">
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
+                {customers.map((c: any) => {
+                  const agentId = latestAgentByCustomer[c.id]
+                  const handledBy = agentId ? (agentNameMap[agentId] || 'Unnamed') : null
+
+                  return (
+                    <tr key={c.id} className="border-t">
+                      <td className="px-4 py-3 text-gray-900">{c.full_name || '-'}</td>
+                      <td className="px-4 py-3 text-gray-900">{c.phone || '-'}</td>
+                      <td className="px-4 py-3 text-gray-900">{c.email || '-'}</td>
+                      <td className="px-4 py-3">
+                        {c.auth_user_id ? (
+                          <span className="text-teal-700 font-medium">Yes</span>
+                        ) : (
+                          <span className="text-gray-400">No</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {handledBy ? (
+                          <span className="text-gray-900">{handledBy}</span>
+                        ) : (
+                          <span className="text-gray-400">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        {new Date(c.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
