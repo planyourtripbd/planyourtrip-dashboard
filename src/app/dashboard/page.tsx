@@ -40,7 +40,12 @@ export default async function DashboardPage() {
           </h1>
           <LogoutButton />
         </div>
-        <p className="text-gray-600 mb-6">Logged in as: {user.email}</p>
+        <div className="flex items-center gap-3 mb-6">
+          <p className="text-gray-600">Logged in as: {user.email}</p>
+          <a href="/dashboard/profile" className="text-sm text-teal-700 hover:underline">
+            Edit Profile
+          </a>
+        </div>
 
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Your Bookings</h2>
 

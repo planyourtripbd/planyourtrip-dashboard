@@ -37,6 +37,8 @@ export default function LoginPage() {
 
     if (roleData?.role === 'admin') {
       router.push('/admin/bookings')
+    } else if (roleData?.role === 'sales_agent') {
+      router.push('/agent/bookings')
     } else {
       router.push('/dashboard')
     }
@@ -46,6 +48,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div>
+          
+            <a href="https://planyourtripbd.github.io/"
+            className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
+          >
+            ← Back to Home
+          </a>
+        </div>
         <h2 className="text-2xl font-bold text-center text-gray-900">Login</h2>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

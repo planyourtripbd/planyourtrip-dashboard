@@ -67,6 +67,18 @@ async function markAsUnpaid(formData: FormData) {
   revalidatePath('/admin/bookings')
 }
 
+async function updateAssignedAgent(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  const agentId = formData.get('agent_id') as string
+  const admin = createAdminClient()
+  await admin
+    .from('bookings')
+    .update({ assigned_agent_id: agentId === '' ? null : agentId })
+    .eq('id', id)
+  revalidatePath('/admin/bookings')
+}
+
 export default async function AdminBookingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -89,9 +101,14 @@ export default async function AdminBookingsPage() {
   const { data: bookings } = await admin
     .from('bookings')
     .select(
-      'id, num_people, status, payment_status, notes, created_at, trips ( name, slug ), customers ( full_name, phone, email )'
+      'id, num_people, status, payment_status, notes, created_at, assigned_agent_id, trips ( name, slug ), customers ( full_name, phone, email )'
     )
     .order('created_at', { ascending: false })
+
+  const { data: agents } = await admin
+    .from('user_roles')
+    .select('user_id, name')
+    .eq('role', 'sales_agent')
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -123,6 +140,7 @@ export default async function AdminBookingsPage() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Payment</th>
                   <th className="px-4 py-3">Booked At</th>
+                  <th className="px-4 py-3">Assigned Agent</th>
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
@@ -138,6 +156,30 @@ export default async function AdminBookingsPage() {
                     <td className="px-4 py-3 text-gray-900">{b.payment_status}</td>
                     <td className="px-4 py-3 text-gray-900">
                       {new Date(b.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <form action={updateAssignedAgent} className="flex items-center gap-1">
+                        <input type="hidden" name="id" value={b.id} />
+                        <select
+                          key={`${b.id}-${b.assigned_agent_id || 'none'}`}
+                          name="agent_id"
+                          defaultValue={b.assigned_agent_id || ''}
+                          className="text-xs border rounded px-1 py-1 text-gray-900"
+                        >
+                          <option value="">Unassigned</option>
+                          {agents?.map((a: any) => (
+                            <option key={a.user_id} value={a.user_id}>
+                              {a.name || 'Unnamed'}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="submit"
+                          className="text-xs bg-gray-700 text-white px-2 py-1 rounded hover:bg-gray-800"
+                        >
+                          Set
+                        </button>
+                      </form>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
